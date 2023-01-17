@@ -1,0 +1,214 @@
+---
+components:
+  schemas:
+    Product:
+      x-ep-schema-version: "0.1.0"
+      x-ep-schema-state-id: "2"
+      x-ep-schema-version-id: "cffhtgg3llq"
+      $schema: "http://json-schema.org/draft-06/schema#"
+      x-ep-schema-id: "80b8ejji5f3"
+      x-ep-schema-state-name: "RELEASED"
+      x-ep-schema-name: "Product"
+      type: "object"
+      properties:
+        quantity:
+          type: "integer"
+        price:
+          type: "number"
+        description:
+          type: "string"
+        currency:
+          type: "string"
+        sku:
+          type: "string"
+      required:
+      - "description"
+      - "sku"
+      - "quantity"
+      - "price"
+      - "currency"
+      x-ep-schema-version-displayname: ""
+    Retail Order:
+      x-ep-schema-version: "0.1.1"
+      x-ep-schema-state-id: "2"
+      x-ep-schema-version-id: "hndmw2pk4n4"
+      $schema: "https://json-schema.org/draft/2019-09/schema"
+      x-ep-schema-id: "02b26vw3yr4"
+      x-ep-schema-state-name: "RELEASED"
+      x-ep-schema-name: "Retail Order"
+      type: "object"
+      properties:
+        retailOrderNumber:
+          type: "integer"
+        associateId:
+          type: "integer"
+        posId:
+          type: "integer"
+        billTo:
+          type: "object"
+          properties:
+            zip:
+              type: "string"
+            address:
+              type: "string"
+            city:
+              type: "string"
+            name:
+              type: "string"
+            state:
+              type: "string"
+          required:
+          - "name"
+          - "address"
+          - "city"
+          - "state"
+          - "zip"
+        customerId:
+          type: "integer"
+        storeId:
+          type: "integer"
+        transactionState:
+          type: "integer"
+        cardLastFour:
+          type: "integer"
+        paymentType:
+          type: "integer"
+        shipTo:
+          type: "object"
+          properties:
+            zip:
+              type: "string"
+            address:
+              type: "string"
+            city:
+              type: "string"
+            name:
+              type: "string"
+            state:
+              type: "string"
+            storeId:
+              type: "integer"
+          required:
+          - "name"
+          - "address"
+          - "city"
+          - "state"
+          - "zip"
+          - "storeId"
+        products:
+          type: "array"
+          items:
+          - type: "object"
+            properties:
+              quantity:
+                type: "number"
+              price:
+                type: "number"
+              description:
+                type: "string"
+              currency:
+                type: "string"
+              sku:
+                type: "integer"
+            required:
+            - "description"
+            - "sku"
+            - "quantity"
+      required:
+      - "customerId"
+      - "transactionState"
+      - "storeId"
+      - "products"
+      x-ep-schema-version-displayname: ""
+  messages:
+    Product:
+      x-ep-event-id: "qgw9j16rbxh"
+      x-ep-event-version-displayname: ""
+      x-ep-event-version-id: "9vsw9tg6tjs"
+      payload:
+        $ref: "#/components/schemas/Product"
+      x-ep-event-version: "0.1.2"
+      x-ep-event-name: "Product"
+      description: "An item for sale in the Acme-Retail store.  Can be used for inventory\
+        \ updates, or price changes distribution."
+      schemaFormat: "application/vnd.aai.asyncapi+json;version=2.0.0"
+      contentType: "application/json"
+      x-ep-event-state-id: "2"
+      x-ep-event-state-name: "RELEASED"
+    Fraud:
+      x-ep-event-id: "gdvjdjrncuy"
+      x-ep-event-version-displayname: ""
+      x-ep-event-version-id: "ugwuyw40kx5"
+      x-ep-event-version: "0.1.1"
+      x-ep-event-name: "Fraud"
+      description: "**Real Time Data Product**\n\nThe result of constant data analysis\
+        \ of sales, behavioral and historical data, the Fraud event indicates when\
+        \ there is a high likelihood of fraud occuring. "
+      x-ep-event-state-id: "2"
+      x-ep-event-state-name: "RELEASED"
+    Retail Order:
+      x-ep-event-id: "206heo05njr"
+      x-ep-event-version-displayname: ""
+      x-ep-event-version-id: "2zt4hd639lh"
+      payload:
+        $ref: "#/components/schemas/Retail Order"
+      x-ep-event-version: "0.1.1"
+      x-ep-event-name: "Retail Order"
+      description: "State change information about a single product order, from birth\
+        \ (regardless if from a store, mobile application or 3rd party) until fulfillment.\n\
+        \nA single product order typically  contain multiple products."
+      schemaFormat: "application/vnd.aai.asyncapi+json;version=2.0.0"
+      contentType: "application/json"
+      x-ep-event-state-id: "2"
+      x-ep-event-state-name: "RELEASED"
+channels:
+  acmeRetail/hr/fraud/{fraudVerbs}/v1/{fraudSubtype}/{fraudId}:
+    publish:
+      bindings:
+        solace:
+          bindingVersion: 0.3.0
+          destinations:
+            - destinationType: queue
+              x-ep-class-of-service: "silver"
+              queue:
+                name: CreatedFraudEvents
+                topicSubscriptions:
+                - person/*/created
+            - destinationType: queue
+              x-ep-class-of-service: "gold"
+              queue:
+                name: UpdatedFraudEvents
+                topicSubscriptions:
+                - person/*/updated
+      message:
+        $ref: "#/components/messages/Fraud"
+    parameters:
+      fraudSubtype:
+          schema:
+            type: "string"
+          x-ep-parameter-name: "fraudSubtype"
+      fraudVerbs:
+          schema:
+            type: "string"
+          x-ep-parameter-name: "fraudVerbs"
+      fraudId:
+          schema:
+            type: "string"
+          x-ep-parameter-name: "fraudId"
+
+asyncapi: "2.5.0"
+info:
+  x-ep-application-version: "0.1.1"
+  x-ep-application-version-id: "xm9q7x23edp"
+  x-ep-application-id: "qflupgaf84t"
+  description: "Commercial off-the-shelf (COTS) Point of Sale (PoS) system that serves\
+    \ checkout areas for all stores within acme-retail.   Receives Product events\
+    \ from supply chain management domain to allow for price updates and restrictions\
+    \ on purchases.  Emits Retail Order events that allow for analytics and supply\
+    \ chain management decisions."
+  x-ep-state-name: "RELEASED"
+  title: "Point of Sale System"
+  x-ep-application-domain-id: "actei0226a6"
+  version: "0.1.1"
+  x-ep-state-id: "2"
+  x-ep-application-domain-name: "AcmeRetail - Store Operations"

@@ -1,0 +1,111 @@
+# This workflow will be triggered on every commit merge to the defined branch. It involved
+# 1. Checking if an AsyncAPI spec file is present in the commit
+# 2. Import the AsyncAPI spec file to Solace PubSub+ Event Portal
+# 3. Synchronize the custom extensions in the AsyncAPI spec file with Event Portal object ids
+# 4. Trigger a Jenkins job that carries out the provisioning and configuration of the Solace PubSub+ Event broker(s), and promotion of the application on Solace PubSub+ Event Portal
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# To get started, configure the following in your repos secrets https://docs.github.com/en/actions/security-guides/encrypted-secrets
+# JENKINS_HOST: your Jenkins host
+# JENKINS_USER: your Jenkins user
+# JENKINS_TOKEN: your Jenkins token
+# CLI_SOLACE_CLOUD_TOKEN: your Solace Cloud Token
+# SOLACE_APPLICATION_DOMAIN: Application Domain Name
+
+
+name: Import AsyncAPI to Solace PubSub+ Event Portal
+on:
+  push: 
+    branches: [ main ]
+
+env:
+  ASYNCAPI_FILE_PATH: 'none'
+  CANCEL_WORKFLOW: ${{ false }}
+
+jobs:
+  asyncapi-present:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Branch
+        uses: actions/checkout@master
+        with:
+          ref: ${{ github.ref }}
+            
+      - name: Install asycnapi cli
+        run: npm install -g @asyncapi/cli@0.24.0 
+          
+    # Get all files in commit
+      - id: files
+        uses: jitterbit/get-changed-files@v1
+
+      - name: Check if an AsycnAPI file is in commit
+        run: |
+          asyncapiFiles=()
+          for changed_file in ${{ steps.files.outputs.all }}
+          do
+            if [[ ( ${changed_file} == *.yaml ) || ( ${changed_file} == *.yml ) || ( ${changed_file} == *.json ) ]]
+            then
+              asyncapi validate ${changed_file} &> check.txt
+              # Check if the file is an asyncapi spec
+              if ! grep -q "field is missing." check.txt; then
+                asyncapiFiles+=("$changed_file")
+                echo "ASYNCAPI_FILE_PATH=${changed_file}" >> $GITHUB_ENV
+              fi
+            fi
+          done
+          if [ ${#asyncapiFiles[@]} -eq 0 ]; then
+            echo "Cancel workflow. No file found!"
+            echo "CANCEL_WORKFLOW=true" >> $GITHUB_ENV
+          fi
+
+      - name: Cancel Workflow if no asyncAPI file present in PR
+        if: env.CANCEL_WORKFLOW == 'true'
+        uses: andymckay/cancel-action@0.2
+      
+      - id: set-async-path-var
+        run: echo "::set-output name=ASYNCAPI_FILE_PATH::$ASYNCAPI_FILE_PATH"
+    outputs:
+      ASYNCAPI_FILE_PATH: ${{steps.set-async-path-var.outputs.ASYNCAPI_FILE_PATH}}
+
+  import-asyncapi-file:
+    needs: asyncapi-present
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Branch
+        uses: actions/checkout@master
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Import AsyncAPI spec file to EP
+        env:
+          CLI_SOLACE_CLOUD_TOKEN: ${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}
+          CLI_IMPORT_CREATE_API_APPLICATION: true
+        run: |
+          npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} -d "${{ secrets.SOLACE_APPLICATION_DOMAIN }}"
+
+  sync-asyncapi-with-ep:
+    needs: import-asyncapi-file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync AsyncAPI spec file with EP
+        run: echo "Synching file with EP"
+      - name: Committing AsyncAPI spec file into repo
+        run: echo "Commit file back to repo"
+  
+  # Trigger awx Jenkins job if an asyncapi spec file is present in commit merge
+  trigger-jenkins:
+    needs: asyncapi-present
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Jenkins 
+        uses: enflo/jenkins-action@master
+        with: 
+          url: 'https://${{ secrets.JENKINS_HOST }}/job/build-awx-asyncapi-rest/buildWithParameters'
+          user: ${{ secrets.JENKINS_USER }}
+          token: ${{ secrets.JENKINS_TOKEN }}
+          job: build-awx-asyncapi-rest
+          parameters: REPO_HTTP_URL=${{ github.event.repository.html_url }}&REPO_BRANCH=${{ github.ref_name}}&ASYNCAPI_FILE=${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}&BUILD_ENV=test

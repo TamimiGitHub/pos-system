@@ -1,0 +1,107 @@
+# This workflow will be triggered on every PR to validate the AsyncAPI spec file 
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# Validation only runs if an AsyncAPI spec file is present in the commit
+
+# To get started, configure the following in your repos secrets https://docs.github.com/en/actions/security-guides/encrypted-secrets
+# CLI_SOLACE_CLOUD_TOKEN: your Solace Cloud Token
+
+name: Validate AsyncaPI spec file
+on:
+  pull_request: 
+    branches: [ main ]
+
+env:
+  CANCEL_WORKFLOW: false
+jobs:
+  asyncapi-present:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout Current Branch
+          uses: actions/checkout@master
+          with:
+            ref: ${{ github.ref }}
+              
+        - name: Install asycnapi cli
+          run: npm install -g @asyncapi/cli@0.24.0
+            
+      # Get all files in commit
+        - id: files
+          uses: jitterbit/get-changed-files@v1
+
+        - name: Check if an AsycnAPI file is in commit
+          run: |
+            asyncapiFiles=()
+            for changed_file in ${{ steps.files.outputs.all }}
+            do
+              if [[ ( ${changed_file} == *.yaml ) || ( ${changed_file} == *.yml ) || ( ${changed_file} == *.json ) ]]
+              then
+                asyncapi validate ${changed_file} &> check.txt
+                # Check if the file is an asyncapi spec
+                if ! grep -q "field is missing." check.txt; then
+                  asyncapiFiles+=("$changed_file")
+                  echo "This is an asyncapi file"
+                fi
+              fi
+            done
+            if [ ${#asyncapiFiles[@]} -eq 0 ]; then
+              echo "Cancel workflow. No file found!"
+              echo "CANCEL_WORKFLOW=true" >> $GITHUB_ENV
+            fi
+
+        - name: Cancel Workflow if no asyncAPI file present in PR
+          if: env.CANCEL_WORKFLOW == 'true'
+          uses: andymckay/cancel-action@0.2
+  
+  validate-asyncapi:
+    runs-on: ubuntu-latest
+    needs: asyncapi-present
+    steps:
+
+      - name: Checkout Current Branch
+        uses: actions/checkout@master
+        with:
+          ref: ${{ github.ref }}
+      
+      - name: setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install asycnapi cli
+        run: npm install -g @asyncapi/cli@0.24.0
+
+      # Get all files in PR
+      - id: async_spec_present
+        uses: jitterbit/get-changed-files@v1
+
+      # Validate AsyncAPI file
+      - name: Validate asyncapi spec file using OS validator
+        run: |
+          for changed_file in ${{ steps.async_spec_present.outputs.all }}
+          do
+            if [[ ( ${changed_file} == *.yaml ) || ( ${changed_file} == *.yml ) || ( ${changed_file} == *.json ) ]]
+            then
+              asyncapi validate ${changed_file} &> check.txt
+              cat check.txt
+              # Check if the file is an asyncapi spec
+              if grep -q "ValidationError" "check.txt"; then
+                exit 1
+              fi
+              echo "ASYNCAPI_FILE_PATH=${changed_file}" >> $GITHUB_ENV
+            fi
+          done
+
+      # Import spec file to EP in checkmode
+      - name: Attempt an import to EP in test mode
+        env: 
+          CLI_SOLACE_CLOUD_TOKEN: ${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}
+          CLI_IMPORT_CREATE_API_APPLICATION: true
+          CLI_MODE: test_mode
+        run: |
+          npx @solace-labs/ep-async-api-importer -fp ./$ASYNCAPI_FILE_PATH -d "${{ secrets.SOLACE_APPLICATION_DOMAIN }}"
+      
