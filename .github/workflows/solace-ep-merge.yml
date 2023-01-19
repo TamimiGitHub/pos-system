@@ -1,8 +1,7 @@
-# This workflow will be triggered on every commit merge to the defined branch. It involved
+# This workflow will be triggered on every commit merge to the defined branch. It involves
 # 1. Checking if an AsyncAPI spec file is present in the commit
 # 2. Import the AsyncAPI spec file to Solace PubSub+ Event Portal
-# 3. Synchronize the custom extensions in the AsyncAPI spec file with Event Portal object ids
-# 4. Trigger a Jenkins job that carries out the provisioning and configuration of the Solace PubSub+ Event broker(s), and promotion of the application on Solace PubSub+ Event Portal
+# 4. Trigger a github workflow at a target infrastructure repo to run provisioning and configuration
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -10,11 +9,8 @@
 # documentation.
 
 # To get started, configure the following in your repos secrets https://docs.github.com/en/actions/security-guides/encrypted-secrets
-# JENKINS_HOST: your Jenkins host
-# JENKINS_USER: your Jenkins user
-# JENKINS_TOKEN: your Jenkins token
+# INFRASTRUCTURE_REPO: the github repo for the target infrastructure repo containing configuration JSON files templates for Solace Pubsub+
 # CLI_SOLACE_CLOUD_TOKEN: your Solace Cloud Token
-# SOLACE_APPLICATION_DOMAIN: Application Domain Name
 
 
 name: Import AsyncAPI to Solace PubSub+ Event Portal
@@ -85,7 +81,7 @@ jobs:
           CLI_SOLACE_CLOUD_TOKEN: ${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}
           CLI_IMPORT_CREATE_API_APPLICATION: true
         run: |
-          npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} -d "${{ secrets.SOLACE_APPLICATION_DOMAIN }}"
+          npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}
 
   sync-asyncapi-with-ep:
     needs: import-asyncapi-file
@@ -96,16 +92,3 @@ jobs:
       - name: Committing AsyncAPI spec file into repo
         run: echo "Commit file back to repo"
   
-  # Trigger awx Jenkins job if an asyncapi spec file is present in commit merge
-  trigger-jenkins:
-    needs: asyncapi-present
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Jenkins 
-        uses: enflo/jenkins-action@master
-        with: 
-          url: 'https://${{ secrets.JENKINS_HOST }}/job/build-awx-asyncapi-rest/buildWithParameters'
-          user: ${{ secrets.JENKINS_USER }}
-          token: ${{ secrets.JENKINS_TOKEN }}
-          job: build-awx-asyncapi-rest
-          parameters: REPO_HTTP_URL=${{ github.event.repository.html_url }}&REPO_BRANCH=${{ github.ref_name}}&ASYNCAPI_FILE=${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}&BUILD_ENV=test

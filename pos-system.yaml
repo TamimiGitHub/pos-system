@@ -140,10 +140,13 @@ components:
       x-ep-event-version-displayname: ""
       x-ep-event-version-id: "ugwuyw40kx5"
       x-ep-event-version: "0.1.1"
-      x-ep-event-name: "Fraud"
+      payload:
+        $ref: '#/components/schemas/Product'
       description: "**Real Time Data Product**\n\nThe result of constant data analysis\
         \ of sales, behavioral and historical data, the Fraud event indicates when\
         \ there is a high likelihood of fraud occuring. "
+      schemaFormat: "application/vnd.aai.asyncapi+json;version=2.0.0"
+      contentType: "application/json"
       x-ep-event-state-id: "2"
       x-ep-event-state-name: "RELEASED"
     Retail Order:
@@ -163,6 +166,7 @@ components:
       x-ep-event-state-name: "RELEASED"
 channels:
   acmeRetail/hr/fraud/{fraudVerbs}/v1/{fraudSubtype}/{fraudId}:
+    x-ep-event-name: "Fraud"
     publish:
       bindings:
         solace:
@@ -197,6 +201,7 @@ channels:
           x-ep-parameter-name: "fraudId"
 
 asyncapi: "2.5.0"
+x-ep-application-domain-name: "AcmeRetail - Store Operations"
 info:
   x-ep-application-version: "0.1.1"
   x-ep-application-version-id: "xm9q7x23edp"
@@ -211,4 +216,3 @@ info:
   x-ep-application-domain-id: "actei0226a6"
   version: "0.1.1"
   x-ep-state-id: "2"
-  x-ep-application-domain-name: "AcmeRetail - Store Operations"
