@@ -66,6 +66,7 @@ jobs:
       ASYNCAPI_FILE_PATH: ${{steps.set-async-path-var.outputs.ASYNCAPI_FILE_PATH}}
 
   Trigger-Generate:
+    needs: asyncapi-present
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Current Branch
