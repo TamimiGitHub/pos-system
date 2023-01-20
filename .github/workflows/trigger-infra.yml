@@ -59,6 +59,8 @@ jobs:
       - name: Cancel Workflow if no asyncAPI file present in PR
         if: env.CANCEL_WORKFLOW == 'true'
         uses: andymckay/cancel-action@0.3
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
       
       - id: set-async-path-var
         run: echo "::set-output name=ASYNCAPI_FILE_PATH::$ASYNCAPI_FILE_PATH"
