@@ -66,9 +66,10 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT }}
       
       - id: set-async-path-var
-        run: echo "::set-output name=ASYNCAPI_FILE_PATH::$ASYNCAPI_FILE_PATH"
-    outputs:
-      ASYNCAPI_FILE_PATH: ${{steps.set-async-path-var.outputs.ASYNCAPI_FILE_PATH}}
+        run: echo "ASYNCAPI_FILE_PATH=$ASYNCAPI_FILE_PATH" >> $GITHUB_ENV 
+        
+    # outputs:
+    #   ASYNCAPI_FILE_PATH: ${{steps.set-async-path-var.outputs.ASYNCAPI_FILE_PATH}}
 
   import-asyncapi-file:
     needs: asyncapi-present
@@ -84,7 +85,8 @@ jobs:
           CLI_SOLACE_CLOUD_TOKEN: ${{ secrets.CLI_SOLACE_CLOUD_TOKEN }}
           CLI_IMPORT_CREATE_API_APPLICATION: true
         run: |
-          npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}
+          # npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}
+          npx @solace-labs/ep-async-api-importer -fp  ${{env.ASYNCAPI_FILE_PATH}}
 
   sync-asyncapi-with-ep:
     needs: import-asyncapi-file
@@ -105,7 +107,7 @@ jobs:
       - name: Trigger generate implementation 
         run: |
           # Read AsyncAPI Spec file into variable
-          spec=`cat ${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} | base64`
+          spec=`cat ${{env.ASYNCAPI_FILE_PATH}} | base64`
           curl -X POST -u "${{ github.actor }}:${{ secrets.WORKFLOW_PAT }}" \
             -H "Accept: application/vnd.github.everest-preview+json"  \
             -H "Content-Type: application/json" \
