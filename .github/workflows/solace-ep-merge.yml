@@ -19,10 +19,6 @@ on:
   push: 
     branches: [ main ]
 
-env:
-  ASYNCAPI_FILE_PATH: 'none'
-  CANCEL_WORKFLOW: ${{ false }}
-
 jobs:
   asyncapi-present:
     runs-on: ubuntu-latest
@@ -87,15 +83,6 @@ jobs:
         run: |
           npx @solace-labs/ep-async-api-importer -fp ./${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}
 
-  sync-asyncapi-with-ep:
-    needs: import-asyncapi-file
-    runs-on: ubuntu-latest
-    steps:
-      - name: Sync AsyncAPI spec file with EP
-        run: echo "Synching file with EP"
-      - name: Committing AsyncAPI spec file into repo
-        run: echo "Commit file back to repo"
-      
   Trigger-Generate-Implementations-Configuration:
     needs: asyncapi-present
     runs-on: ubuntu-latest
