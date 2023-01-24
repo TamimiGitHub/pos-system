@@ -201,7 +201,7 @@ channels:
           x-ep-parameter-name: "fraudId"
 
 asyncapi: "2.5.0"
-x-ep-application-domain-name: "JRetail - Store Operations"
+x-ep-application-domain-name: "JrRetail - Store Operations"
 info:
   x-ep-application-version: "0.1.1"
   x-ep-application-version-id: "xm9q7x23edp"
