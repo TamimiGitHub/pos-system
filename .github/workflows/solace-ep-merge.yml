@@ -93,9 +93,7 @@ jobs:
       - name: Trigger generate implementation 
         run: |
           # Read AsyncAPI Spec file into variable
-          cat ${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}}
-          spec=`cat ${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} | base64`
-          echo $spec
+          spec=`cat ${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} | base64 -w 0`
           curl -X POST -u "${{ github.actor }}:${{ secrets.WORKFLOW_PAT }}" \
             -H "Accept: application/vnd.github.everest-preview+json"  \
             -H "Content-Type: application/json" \
