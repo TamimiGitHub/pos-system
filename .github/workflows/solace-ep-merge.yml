@@ -95,6 +95,7 @@ jobs:
           # Read AsyncAPI Spec file into variable
           spec=`cat ${{needs.asyncapi-present.outputs.ASYNCAPI_FILE_PATH}} | base64`
           echo $spec
+          echo $spec | base64 --decode
           curl -X POST -u "${{ github.actor }}:${{ secrets.WORKFLOW_PAT }}" \
             -H "Accept: application/vnd.github.everest-preview+json"  \
             -H "Content-Type: application/json" \
