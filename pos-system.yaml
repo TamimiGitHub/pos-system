@@ -309,7 +309,7 @@ info:
   x-ep-application-version: "0.1.5"
   x-ep-application-version-id: "vnfb6qp2gnm"
   x-ep-application-id: "ln7rsri66vi"
-  description: "Commercial off-the-shelf (COTS) Point of Sale (PoS) system that serves\
+  description: "UPDATED ! Commercial off-the-shelf (COTS) Point of Sale (PoS) system that serves\
     \ checkout areas for all stores within acme-retail.   Receives Product events\
     \ from supply chain management domain to allow for price updates and restrictions\
     \ on purchases.  Emits Retail Order events that allow for analytics and supply\
