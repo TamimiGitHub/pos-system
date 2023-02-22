@@ -151,13 +151,20 @@ channels:
     publish:
       bindings:
         solace:
+          bindingVersion: 0.3.0
           destinations:
-          - destinationType: "queue"
-            queue:
-              name: "pointOfSale.fraud.detected"
-              topicSubscriptions:
-              - "acmeRetail/hr/fraud/detected/v1/*/*"
-          bindingVersion: "0.3.0"
+            - destinationType: queue
+              x-ep-class-of-service: "silver"
+              queue:
+                name: CreatedFraudEvents
+                topicSubscriptions:
+                - person/*/created
+            - destinationType: queue
+              x-ep-class-of-service: "gold"
+              queue:
+                name: UpdatedFraudEvents
+                topicSubscriptions:
+                - person/*/updated
       message:
         $ref: "#/components/messages/Fraud"
     parameters:
